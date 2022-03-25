@@ -89,3 +89,9 @@ ENV/
 .ropeproject
 
 .DS_Store
+
+instantclient_21_3
+
+Scripts/**/*
+
+pyvenv.cfg
