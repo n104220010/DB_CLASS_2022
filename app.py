@@ -74,7 +74,7 @@ def login():
             login_user(user)
 
             if( identity == 'user'):
-                return redirect(url_for('bookstore'))
+                return redirect(url_for('viedostore'))
             else:
                 return redirect(url_for('manager'))
         
@@ -117,10 +117,10 @@ def register():
 
     return render_template('register.html')
 
-# 書店內部
-@app.route('/bookstore', methods=['GET', 'POST'])
+# viedo內部
+@app.route('/viedostore', methods=['GET', 'POST'])
 @login_required # 使用者登入後才可以看
-def bookstore():
+def viedostore():
 
     # 以防管理者誤闖
     if request.method == 'GET':
@@ -154,205 +154,17 @@ def bookstore():
     # 沒有收到 pid 的 request 的話，代表只是要看所有的書
     sql = 'SELECT * FROM PRODUCT'
     cursor.execute(sql)
-    book_row = cursor.fetchall()
-    book_data = []
-    for i in book_row:
-        book = {
+    viedo_row = cursor.fetchall()
+    viedo_data = []
+    for i in viedo_row:
+        viedo = {
             '商品編號': i[0],
             '商品名稱': i[1]
         }
-        book_data.append(book)
+        viedo_data.append(viedo)
 
     # 抓取所有書的資料 用一個 List 包 Json 格式，在 html 裡可以用 for loop 呼叫
-    return render_template('bookstore.html', book_data=book_data, user=current_user.name)
-
-# 會員購物車
-@app.route('/cart', methods=['GET', 'POST'])
-@login_required # 使用者登入後才可以看
-def cart():
-
-    # 以防管理者誤闖
-    if request.method == 'GET':
-        if( current_user.role == 'manager'):
-            flash('No permission')
-            return redirect(url_for('manager'))
-
-    # 回傳有 pid 代表要 加商品
-    if request.method == 'POST':
-        
-        if "pid" in request.form :
-            product_data = add_product()
-
-        elif "delete" in request.form :
-            pid = request.values.get('delete')
-            user_id = current_user.id #找到現在使用者是誰
-            cursor.prepare('SELECT * FROM CART WHERE MID = :id ')
-            cursor.execute(None, {'id': user_id})
-            tno = cursor.fetchone()[2] # 交易編號
-
-            cursor.prepare(' DELETE FROM RECORD WHERE TNO=:tno and PID=:pid ')
-            cursor.execute(None, {'tno': tno, 'pid':pid})
-            connection.commit() # 把這個刪掉
-
-            product_data = only_cart()
-        
-        # 點選繼續購物
-        elif "user_edit" in request.form:
-            change_order()
-                
-            return redirect(url_for('bookstore'))
-        
-        elif "buy" in request.form:
-
-            change_order()
-
-            return redirect(url_for('order'))
-
-        elif "order" in request.form:
-
-            user_id = current_user.id #找到現在使用者是誰
-            cursor.prepare('SELECT * FROM CART WHERE MID = :id ')
-            cursor.execute(None, {'id': user_id})
-            tno = cursor.fetchone()[2] # 交易編號
-
-            cursor.prepare('SELECT SUM(TOTAL) FROM RECORD WHERE TNO=:tno ')
-            cursor.execute(None, {'tno': tno})
-            total = cursor.fetchone()[0] # 總金額
-            
-            cursor.prepare('DELETE FROM CART WHERE MID = :id ')
-            cursor.execute(None, {'id': user_id})
-            connection.commit() # 把這個刪掉
-
-            time = str(datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
-            format = 'yyyy/mm/dd hh24:mi:ss'
-
-            cursor.prepare('INSERT INTO ORDER_LIST VALUES ( order2_seq.nextval , :mid, TO_DATE( :time, :format ), :total)')
-            cursor.execute(None, {'mid': user_id, 'time':time, 'total':total, 'format':format})
-            connection.commit() # 把這個刪掉
-
-            return render_template('complete.html')
-
-    
-    product_data = only_cart()
-    
-    if product_data == 0:
-        return render_template('empty.html')
-    else:
-        return render_template('cart.html', data=product_data)
-
-def add_product():
-    user_id = current_user.id #找到現在使用者是誰
-    cursor.prepare('SELECT * FROM CART WHERE MID = :id ')
-    cursor.execute(None, {'id': user_id})
-    data = cursor.fetchone()
-
-    if( data == None): #假如購物車裡面沒有他的資料
-        time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        cursor.prepare('INSERT INTO CART VALUES (:id, :time, cart_tno_seq.nextval)')
-        cursor.execute(None, {'id': user_id, 'time':time})
-        connection.commit()
-        
-        cursor.prepare('SELECT * FROM CART WHERE MID = :id ')
-        cursor.execute(None, {'id': user_id})
-        data = cursor.fetchone()
-    
-    tno = data[2] # 使用者有購物車了，購物車的交易編號是什麼
-    pid = request.values.get('pid') # 使用者想要購買的東西
-    
-    cursor.prepare('SELECT * FROM RECORD WHERE PID = :id and TNO = :tno')
-    cursor.execute(None, {'id': pid, 'tno':tno})
-    product = cursor.fetchone()    
-
-    cursor.prepare('SELECT PRICE FROM PRODUCT WHERE PID = :id ')
-    cursor.execute(None, {'id': pid})
-    price = cursor.fetchone()[0]
-
-    # 如果購物車裡面沒有的話 把他加一個進去
-    if(product == None):
-        cursor.prepare('INSERT INTO RECORD VALUES (:id, :tno, 1, :price, :total)')
-        cursor.execute(None, {'id': tno, 'tno':pid, 'price':price, 'total':price})
-        connection.commit()
-
-    else:
-        cursor.prepare('SELECT AMOUNT FROM RECORD WHERE TNO = :id and PID=:pid')
-        cursor.execute(None, {'id': tno, 'pid':pid})
-        amount = cursor.fetchone()[0]
-        total = (amount+1)*int(price)
-        cursor.prepare('UPDATE RECORD SET AMOUNT=:amount, TOTAL=:total WHERE PID=:pid and TNO=:tno')
-        cursor.execute(None, {'amount':amount+1, 'tno':tno , 'pid':pid, 'total':total})
-    
-    cursor.prepare('SELECT * FROM RECORD WHERE TNO = :id')
-    cursor.execute(None, {'id': tno})
-    product_row = cursor.fetchall()
-    product_data = []
-    for i in product_row:
-        cursor.prepare('SELECT PNAME FROM PRODUCT WHERE PID = :id')
-        cursor.execute(None, {'id': i[1]})
-        price = cursor.fetchone()[0]    
-        product = {
-            '商品編號': i[1],
-            '商品名稱': price,
-            '商品價格': i[3],
-            '數量': i[2]
-        }
-        product_data.append(product)
-    
-    return product_data
-
-def change_order():
-
-    user_id = current_user.id #找到現在使用者是誰
-    cursor.prepare('SELECT * FROM CART WHERE MID = :id ')
-    cursor.execute(None, {'id': user_id})
-    data = cursor.fetchone()
-
-    tno = data[2] # 使用者有購物車了，購物車的交易編號是什麼
-    cursor.prepare('SELECT * FROM RECORD WHERE TNO = :id')
-    cursor.execute(None, {'id': tno})
-    product_row = cursor.fetchall()
-
-    for i in product_row:
-        
-        # i[0]：交易編號 / i[1]：商品編號 / i[2]：數量 / i[3]：價格
-        if int(request.form[i[1]]) != i[2]:
-            cursor.prepare('UPDATE RECORD SET AMOUNT=:amount, TOTAL=:total WHERE PID=:pid and TNO=:tno')
-            cursor.execute(None, {'amount':request.form[i[1]], 'pid':i[1], 'tno':tno, 'total':int(request.form[i[1]])*int(i[3])})
-            connection.commit()
-            print('change')
-
-    return 0
-
-
-def only_cart():
-    user_id = current_user.id #找到現在使用者是誰
-    cursor.prepare('SELECT * FROM CART WHERE MID = :id ')
-    cursor.execute(None, {'id': user_id})
-    data = cursor.fetchone()
-
-    if( data == None): #假如購物車裡面沒有他的資料
-        
-        return 0
-    
-
-    tno = data[2] # 使用者有購物車了，購物車的交易編號是什麼
-    cursor.prepare('SELECT * FROM RECORD WHERE TNO = :id')
-    cursor.execute(None, {'id': tno})
-    product_row = cursor.fetchall()
-    product_data = []
-
-    for i in product_row:
-        cursor.prepare('SELECT PNAME FROM PRODUCT WHERE PID = :id')
-        cursor.execute(None, {'id': i[1]})
-        price = cursor.fetchone()[0] 
-        product = {
-            '商品編號': i[1],
-            '商品名稱': price,
-            '商品價格': i[3],
-            '數量': i[2]
-        }
-        product_data.append(product)
-    
-    return product_data
+    return render_template('viedostore.html', viedo_data=viedo_data, user=current_user.name)
 
 @app.route('/manager', methods=['GET', 'POST'])
 @login_required
@@ -361,7 +173,7 @@ def manager():
     if request.method == 'GET':
         if( current_user.role == 'user'):
             flash('No permission')
-            return redirect(url_for('bookstore'))
+            return redirect(url_for('viedostore'))
 
     if 'delete' in request.values: #要刪除
 
@@ -383,24 +195,25 @@ def manager():
             pid = request.values.get('edit')
             return redirect(url_for('edit', pid=pid))
 
-    book_data = book()
+    # viedo_data = viedo()
+    viedo_data = []
 
-    return render_template('manager.html', book_data=book_data, user=current_user.name)
+    return render_template('manager.html', viedo_data=viedo_data, user=current_user.name)
 
-def book():
+def viedo():
     sql = 'SELECT * FROM PRODUCT'
     cursor.execute(sql)
-    book_row = cursor.fetchall()
-    book_data = []
-    for i in book_row:
-        book = {
+    viedo_row = cursor.fetchall()
+    viedo_data = []
+    for i in viedo_row:
+        viedo = {
             '商品編號': i[0],
             '商品名稱': i[1],
             '商品售價': i[2],
             '商品類別': i[3]
         }
-        book_data.append(book)
-    return book_data
+        viedo_data.append(viedo)
+    return viedo_data
 
 @app.route('/edit', methods=['GET', 'POST'])
 @login_required
@@ -410,7 +223,7 @@ def edit():
     if request.method == 'GET':
         if( current_user.role == 'user'):
             flash('No permission')
-            return redirect(url_for('bookstore'))
+            return redirect(url_for('viedostore'))
 
     if request.method == 'POST':
         pid = request.values.get('pid')
@@ -426,7 +239,6 @@ def edit():
     else:
         product = show_info()
         return render_template('edit.html', data=product)
-
 
 def show_info():
     pid = request.args['pid']
@@ -447,6 +259,7 @@ def show_info():
     return product
 
 @app.route('/add', methods=['GET', 'POST'])
+@login_required
 def add():
 
     if request.method == 'POST':
@@ -476,9 +289,6 @@ def add():
         return redirect(url_for('manager'))
 
     return render_template('add.html')
-
-@app.route('/order')
-def order():
 
     user_id = current_user.id #找到現在使用者是誰
     cursor.prepare('SELECT * FROM CART WHERE MID = :id ')
@@ -575,4 +385,4 @@ def logout():
 if __name__ == '__main__':
     app.debug = True #easy to debug
     app.secret_key = "Your Key"
-    app.run()
+    app.run(host="0.0.0.0", port=5000)
