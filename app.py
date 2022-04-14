@@ -201,7 +201,7 @@ def manager():
     return render_template('manager.html', viedo_data=viedo_data, user=current_user.name)
 
 def viedo():
-    sql = 'SELECT * FROM PRODUCT'
+    sql = 'SELECT * FROM VIDEO'
     cursor.execute(sql)
     viedo_row = cursor.fetchall()
     viedo_data = []
