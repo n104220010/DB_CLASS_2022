@@ -3,11 +3,11 @@
 {{ super() }}
 {% endblock head %}
 
-{% block title %}BookStore{% endblock title%}
+{% block title %}Video{% endblock title%}
 
 {% block content%}
 <div class="btn_div">
-  <h1 class="book_title left">31 Lab Book Store</h1>
+  <h1 class="video_title left">Youtube Anylysis</h1>
   <a href="{{ url_for('dashboard') }}"  title="資料分析"><img class="cart" src="{{ url_for('static', filename='./image/dashboard.png') }}"></a>
   <a href="{{ url_for('logout') }}"  title="登出"><img class="logout" src="{{ url_for('static', filename='./image/logout.png') }}"></a>
 </div>
@@ -38,37 +38,35 @@
 {% endif %}
 {% endwith %}
 
-<div class="book_table">
+<div class="video_table">
   <form  method='post' action={{ url_for('manager') }} >
     <table cellpadding="10" border='3'>
       <tr>
-        <th>商品編號</th>
-        <th>商品名稱</th>
-        <th>商品售價</th>
-        <th>商品類別</th>
+        <th>影片編號</th>
+        <th>影片標題</th>
+        <th>上架日期</th>
         <th></th>
         <th></th>
       </tr>
-      {% for book in book_data %}
+      {% for video in video_data %}
       <tr>
-        <td> {{ book.商品編號 }}</td>
-        <td> {{ book.商品名稱 }}</td>
-        <td> {{ book.商品售價 }}</td>
-        <td> {{ book.商品類別 }}</td>
+        <td> {{ video.影片編號 }}</td>
+        <td> {{ video.影片標題 }}</td>
+        <td> {{ video.上架日期 }}</td>
         <td>
-          <button type="submit" value="{{book.商品編號}}" name="edit">修改
+          <button type="submit" value="{{video.影片編號}}" name="edit">修改
           </button>
         </td>
         <td>
-          <button type="submit" value="{{book.商品編號}}" name="delete" onclick="return (confirm('你確定要刪除 \'{{ book.商品名稱 }}\' 嗎？'))">
+          <button type="submit" value="{{video.影片編號}}" name="delete" onclick="return (confirm('你確定要刪除 \'{{ video.影片標題 }}\' 嗎？'))">
             刪除
           </button>
         </td>
       </tr>
       {% endfor %}
     </table>
-      <div class="book_table">
-        <a href={{ url_for('add')}}><button value="new" name="new" type="button"> 上架新商品</button></a>
+      <div class="video_table">
+        <a href={{ url_for('add')}}><button value="new" name="new" type="button"> 上架新影片</button></a>
       </div>
     </form>
 
