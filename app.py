@@ -118,7 +118,7 @@ def register():
     return render_template('register.html')
 
 # viedo內部
-@app.route('/viedostore', methods=['GET', 'POST'])
+@app.route('/bookstore', methods=['GET', 'POST'])
 @login_required # 使用者登入後才可以看
 def viedostore():
 
@@ -241,22 +241,21 @@ def edit():
         return render_template('edit.html', data=product)
 
 def show_info():
-    pid = request.args['pid']
+    video_id = request.args['VIDEO_ID']
     cursor.prepare('SELECT * FROM PRODUCT WHERE PID = :id ')
-    cursor.execute(None, {'id': pid})
+    cursor.execute(None, {'id': video_id})
 
     data = cursor.fetchone() #password
-    pname = data[1]
-    price = data[2]
-    category = data[3]
+    video_id = data[1]
+    title = data[2]
+    publish_time = data[3]
 
     product = {
-        '商品編號': pid,
-        '商品名稱': pname,
-        '單價': price,
-        '類別': category
+        '影片編號': video_id,
+        '影片標題': title,
+        '上架日期': publish_time,
     }
-    return product
+    return viedo
 
 @app.route('/add', methods=['GET', 'POST'])
 @login_required
