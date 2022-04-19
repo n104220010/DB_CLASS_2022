@@ -12,7 +12,7 @@ pipeline {
           }
           
           echo "docker image rm ..."
-          def dockerImage = docker.build("DB_CLASS_2022")
+          def dockerImage = docker.build("DB_CLASS_2022/1.0")
         }        
       }
     }
