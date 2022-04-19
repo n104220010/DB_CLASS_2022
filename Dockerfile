@@ -27,3 +27,5 @@ ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_21_5:$LD_LIBRARY_PATH
 ENV FLASK_APP=app.py
 
 CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+
+EXPOSE 5000
