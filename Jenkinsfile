@@ -4,11 +4,19 @@ pipeline {
     stage('build') {
       steps {
         echo "building ..."
+        sh 'docker image rm DB_CLASS_2022'
+        echo "docker image rm ..."
+        script {
+          def dockerImage = docker.build("DB_CLASS_2022")
+        }        
       }
     }
     stage('run') {
       steps {
-        echo "testing ${BRANCH_NAME} ${JOB_BASE_NAME} ${NODE_NAME} ${WORKSPACE} ${BUILD_URL} ${GIT_COMMIT}"
+        echo "run"
+        script {
+          dockerImage.withRun('-p 9010:5000')
+        }
       }
     }
   }
