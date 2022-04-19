@@ -1,0 +1,4 @@
+Flask
+typing-extensions
+numpy
+sqlalchemy
