@@ -10,7 +10,7 @@ RUN python -m pip install cx_Oracle --upgrade --user
 
 RUN unzip instantclient-basiclite-linux.x64-21.5.0.0.0dbru.zip
 
-RUN sudo apt install libaio1
+RUN apt install libaio1
 
 ENV FLASK_APP=app.py
 
