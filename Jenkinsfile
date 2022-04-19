@@ -20,7 +20,7 @@ pipeline {
       steps {
         echo "run"
         script {
-          dockerImage.withRun('-p 9010:5000')
+          docker.image("db_class_2022:1.0").withRun('-p 9010:5000')
         }
       }
     }
