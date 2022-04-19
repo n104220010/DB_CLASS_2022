@@ -7,7 +7,13 @@ pipeline {
         
         script {
           try{
-          sh 'docker image rm db_class_2022:1.0'
+            sh 'docker stop db_class'
+            sh 'docker rm db_class'
+          } catch (Exception e) {
+          }
+
+          try {
+            sh 'docker image rm db_class_2022:1.0'
           } catch (Exception e) {
           }
           
@@ -20,7 +26,8 @@ pipeline {
       steps {
         echo "run"
         script {
-          docker.image("db_class_2022:1.0").withRun('-p 9010:5000')
+          // docker.image("db_class_2022:1.0").withRun('-p 9010:5000') {}
+          sh 'docker run -d --name db_class -p 9010:5000  db_class_2022:1.0'
         }
       }
     }
