@@ -4,9 +4,14 @@ pipeline {
     stage('build') {
       steps {
         echo "building ..."
-        sh 'docker image rm DB_CLASS_2022'
-        echo "docker image rm ..."
+        
         script {
+          try{
+          sh 'docker image rm DB_CLASS_2022'
+          } catch (Exception e) {
+          }
+          
+          echo "docker image rm ..."
           def dockerImage = docker.build("DB_CLASS_2022")
         }        
       }
