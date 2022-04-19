@@ -10,9 +10,9 @@ RUN python -m pip install cx_Oracle --upgrade --user
 
 RUN unzip instantclient-basiclite-linux.x64-21.5.0.0.0dbru.zip
 
-RUN apt-get -y update
+RUN ls
 
-RUN apt-get -y upgrade
+RUN apt-get -y update
 
 RUN apt-get -y install libaio1
 
