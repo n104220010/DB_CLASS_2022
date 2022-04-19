@@ -1,4 +1,5 @@
 Flask
+Flask-Login
 typing-extensions
 numpy
 sqlalchemy
