@@ -2,7 +2,9 @@ import re
 from typing_extensions import Self
 from flask import Flask, request, template_rendered
 from flask import url_for, redirect, flash
+import logging
 from flask import render_template
+
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from datetime import datetime
 from numpy import identity, product
@@ -11,7 +13,7 @@ from sqlalchemy import null
 import cx_Oracle
 
 ## Oracle 連線
-#cx_Oracle.init_oracle_client(lib_dir="./instantclient_21_5") # init Oracle instant client 位置
+cx_Oracle.init_oracle_client(lib_dir="C:\\Users\\sharo\\Documents\\GitHub\\DB_CLASS_2022\\instantclient_21_3") # init Oracle instant client 位置
 connection = cx_Oracle.connect('Group6', 'group066', cx_Oracle.makedsn('140.117.69.58', 1521, 'orcl')) # 連線資訊
 cursor = connection.cursor()
 
@@ -28,6 +30,7 @@ class User(UserMixin):
 @login_manager.user_loader
 def user_loader(userid):  
     user = User()
+    print(userid)
     user.id = userid
     cursor.prepare('SELECT IDENTITY, NAME FROM MEMBER WHERE MID = :id ')
     cursor.execute(None, {'id':userid})
@@ -45,10 +48,9 @@ def index():
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     if request.method == 'POST':
-
         account = request.form['account']
         password = request.form['password']
-
+       
         # 查詢看看有沒有這個資料
         # sql = 'SELECT ACCOUNT, PASSWORD, MID, IDENTITY, NAME FROM MEMBER WHERE ACCOUNT = \'' + account + '\''
         # cursor.execute(sql)
@@ -74,7 +76,7 @@ def login():
             login_user(user)
 
             if( identity == 'user'):
-                return redirect(url_for('viedostore'))
+                return redirect(url_for('videostore'))
             else:
                 return redirect(url_for('manager'))
         
@@ -82,8 +84,6 @@ def login():
         else:
             flash('*密碼錯誤，請再試一次')
             return redirect(url_for('login'))
-
-    
     return render_template('login.html')
 
 # 註冊頁面
@@ -117,11 +117,12 @@ def register():
 
     return render_template('register.html')
 
-# viedo內部
-@app.route('/bookstore', methods=['GET', 'POST'])
+# video內部
+@app.route('/videostore', methods=['GET', 'POST'])
 @login_required # 使用者登入後才可以看
-def viedostore():
-
+def videostore():
+    #video_id = request.args['pid']
+    #video_id = request.form['pid']
     # 以防管理者誤闖
     if request.method == 'GET':
         if( current_user.role == 'manager'):
@@ -130,90 +131,91 @@ def viedostore():
 
     # 查看書本的詳細資料（假如有收到 pid 的 request）
     if 'pid' in request.args:
-        pid = request.args['pid']
+        #video_id = request.args['pid']
+        video_id = request.form['pid']
 
-        # 查詢這本書的詳細資訊
-        cursor.prepare('SELECT * FROM PRODUCT WHERE PID = :id ')
-        cursor.execute(None, {'id': pid})
+        # 查詢VIDEO的詳細資訊
+        cursor.prepare('SELECT * FROM VIDEO WHERE video_id = :video_id ')
+        cursor.execute(None, {'video_id': video_id})
 
         data = cursor.fetchone() 
-        pname = data[1]
-        price = data[2]
-        category = data[3]
+        video_id = data[0]
+        title = data[1]
+        publish_time = data[2]
 
         product = {
-            '商品編號': pid,
-            '商品名稱': pname,
-            '單價': price,
-            '類別': category
+            '影片編號': video_id,
+            '影片標題': title,
+            '上架日期': publish_time
         }
 
         # 把抓到的資料用 json 格式傳給 projuct.html 
         return render_template('product.html', data = product)
 
     # 沒有收到 pid 的 request 的話，代表只是要看所有的書
-    sql = 'SELECT * FROM PRODUCT'
+    sql = 'SELECT * FROM video'
     cursor.execute(sql)
-    viedo_row = cursor.fetchall()
-    viedo_data = []
-    for i in viedo_row:
-        viedo = {
-            '商品編號': i[0],
-            '商品名稱': i[1]
+    video_row = cursor.fetchall()
+    video_data = []
+    for i in video_row:
+        video = {
+            '影片編號': i[0],
+            '影片標題': i[1]
         }
-        viedo_data.append(viedo)
-
+        video_data.append(video)
+    print(video_data)
     # 抓取所有書的資料 用一個 List 包 Json 格式，在 html 裡可以用 for loop 呼叫
-    return render_template('viedostore.html', viedo_data=viedo_data, user=current_user.name)
+    return render_template('bookstore.html', video_data=video_data, user=current_user.name)
 
 @app.route('/manager', methods=['GET', 'POST'])
 @login_required
 def manager():
-    
+    #print("before video")
     if request.method == 'GET':
         if( current_user.role == 'user'):
             flash('No permission')
-            return redirect(url_for('viedostore'))
+            return redirect(url_for('videostore'))
 
     if 'delete' in request.values: #要刪除
 
         pid = request.values.get('delete')
 
         # 看看 RECORD 裡面有沒有需要這筆產品的資料
-        cursor.prepare('SELECT * FROM RECORD WHERE PID=:pid')
+        cursor.prepare('SELECT * FROM DAILY_PERFORMANCE WHERE VIDEO_ID=:pid')
         cursor.execute(None, {'pid':pid})
         data = cursor.fetchone() #可以抓一筆就好了，假如有的話就不能刪除
         
         if(data != None):
             flash('faild')
         else:
-            cursor.prepare('DELETE FROM PRODUCT WHERE PID = :id ')
-            cursor.execute(None, {'id': pid})
+            cursor.prepare('DELETE FROM VIDEO WHERE VIDEO_ID = :pid ')
+            cursor.execute(None, {'pid': pid})
             connection.commit() # 把這個刪掉
 
     elif 'edit' in request.values: #要修改
             pid = request.values.get('edit')
             return redirect(url_for('edit', pid=pid))
+    video_data = video()
+    #print(video_data)
+    #video_data = []
 
-    # viedo_data = viedo()
-    viedo_data = []
+    return render_template('manager.html', video_data=video_data, user=current_user.name)
 
-    return render_template('manager.html', viedo_data=viedo_data, user=current_user.name)
-
-def viedo():
+def video():
     sql = 'SELECT * FROM VIDEO'
+    app.logger.info(sql)
     cursor.execute(sql)
-    viedo_row = cursor.fetchall()
-    viedo_data = []
-    for i in viedo_row:
-        viedo = {
-            '商品編號': i[0],
-            '商品名稱': i[1],
-            '商品售價': i[2],
-            '商品類別': i[3]
+    video_row = cursor.fetchall()
+    video_data = []
+    for i in video_row:
+        app.logger.info(i)
+        video = {
+            '影片編號': i[0],
+            '影片標題': i[1],
+            '上架日期': i[2]
         }
-        viedo_data.append(viedo)
-    return viedo_data
+        video_data.append(video)
+    return video_data
 
 @app.route('/edit', methods=['GET', 'POST'])
 @login_required
@@ -223,15 +225,14 @@ def edit():
     if request.method == 'GET':
         if( current_user.role == 'user'):
             flash('No permission')
-            return redirect(url_for('viedostore'))
+            return redirect(url_for('videostore'))
 
     if request.method == 'POST':
-        pid = request.values.get('pid')
-        new_name = request.values.get('name')
-        new_price = request.values.get('price')
-        new_category = request.values.get('category')
-        cursor.prepare('UPDATE PRODUCT SET PNAME=:name, PRICE=:price, CATEGORY=:category WHERE PID=:pid')
-        cursor.execute(None, {'name':new_name, 'price':new_price,'category':new_category, 'pid':pid})
+        video_id = request.values.get('video_id')
+        new_title = request.values.get('title')
+        new_publish_time = request.values.get('publish_time')
+        cursor.prepare('UPDATE VIDEO SET TITLE=:new_title, PUBLISH_TIME=:new_publish_time WHERE VIDEO_ID=:video_id')
+        cursor.execute(None, {'new_title':new_title, 'new_publish_time':new_publish_time, 'video_id':video_id})
         connection.commit()
         
         return redirect(url_for('manager'))
@@ -241,21 +242,22 @@ def edit():
         return render_template('edit.html', data=product)
 
 def show_info():
-    video_id = request.args['VIDEO_ID']
-    cursor.prepare('SELECT * FROM PRODUCT WHERE PID = :id ')
-    cursor.execute(None, {'id': video_id})
+    video_id = request.args['pid']
+    #print(video_id)
+    cursor.prepare('SELECT * FROM VIDEO WHERE VIDEO_ID = :video_id ')
+    cursor.execute(None, {'video_id': video_id})
 
     data = cursor.fetchone() #password
-    video_id = data[1]
-    title = data[2]
-    publish_time = data[3]
+    video_id = data[0]
+    title = data[1]
+    publish_time = data[2]
 
     product = {
         '影片編號': video_id,
         '影片標題': title,
         '上架日期': publish_time,
     }
-    return viedo
+    return product
 
 @app.route('/add', methods=['GET', 'POST'])
 @login_required
@@ -263,7 +265,7 @@ def add():
 
     if request.method == 'POST':
     
-        cursor.prepare('SELECT * FROM PRODUCT WHERE PID=:pid')
+        cursor.prepare('SELECT * FROM VIDEO WHERE VIDEO_ID=:pid')
         data = ""
 
         while ( data != None): #裡面沒有才跳出回圈
@@ -274,50 +276,19 @@ def add():
             cursor.execute(None, {'pid':pid})
             data = cursor.fetchone()
 
-        name = request.values.get('name')
-        price = request.values.get('price')
-        category = request.values.get('category')
-
-        if ( len(name) < 1 or len(price) < 1): #使用者沒有輸入
+        title = request.values.get('title')
+        publish_time = request.values.get('publish_time')
+        
+        if ( len(title) < 1 or len(publish_time) < 1): #使用者沒有輸入
             return redirect(url_for('manager'))
 
-        cursor.prepare('INSERT INTO PRODUCT VALUES (:pid, :name, :price, :category)')
-        cursor.execute(None, {'pid': pid, 'name':name, 'price':price, 'category':category })
+        cursor.prepare('INSERT INTO VIDEO (video_id, title, publish_time) VALUES (:pid, :title, :publish_time)')
+        cursor.execute(None, {'pid': pid, 'title':title, 'publish_time':publish_time })
         connection.commit()
 
         return redirect(url_for('manager'))
 
     return render_template('add.html')
-
-    user_id = current_user.id #找到現在使用者是誰
-    cursor.prepare('SELECT * FROM CART WHERE MID = :id ')
-    cursor.execute(None, {'id': user_id})
-    data = cursor.fetchone()
-    
-    tno = data[2] # 使用者有購物車了，購物車的交易編號是什麼
-
-    cursor.prepare('SELECT * FROM RECORD WHERE TNO = :id')
-    cursor.execute(None, {'id': tno})
-    product_row = cursor.fetchall()
-    product_data = []
-
-    for i in product_row:
-        cursor.prepare('SELECT PNAME FROM PRODUCT WHERE PID = :id')
-        cursor.execute(None, {'id': i[1]})
-        price = cursor.fetchone()[0] 
-        product = {
-            '商品編號': i[1],
-            '商品名稱': price,
-            '商品價格': i[3],
-            '數量': i[2]
-        }
-        product_data.append(product)
-    
-    cursor.prepare('SELECT SUM(TOTAL) FROM RECORD WHERE TNO = :id')
-    cursor.execute(None, {'id': tno})
-    total = cursor.fetchone()[0]
-
-    return render_template('order.html', data=product_data, total=total)
 
 @app.route('/dashboard')
 @login_required
@@ -325,17 +296,19 @@ def dashboard():
     revenue = []
     dataa = []
     for i in range(1,13):
-        cursor.prepare('SELECT EXTRACT(MONTH FROM ORDERTIME), SUM(PRICE) FROM ORDER_LIST WHERE EXTRACT(MONTH FROM ORDERTIME)=:mon GROUP BY EXTRACT(MONTH FROM ORDERTIME)')
-        cursor.execute(None, {"mon": i})
+        pDate="2021/{:02d}".format(i)
+        print(pDate)
+        cursor.prepare('SELECT SUM(VIDEO_LIKES_ADDED) FROM DAILY_PERFORMANCE WHERE substr(PERFORMANCE_DATE,1,7)=:pDate')
+        cursor.execute(None, {"pDate": pDate})
         
         row = cursor.fetchall()
         if cursor.rowcount == 0:
             revenue.append(0)
         else:
             for j in row:
-                revenue.append(j[1])
-                
-        cursor.prepare('SELECT EXTRACT(MONTH FROM ORDERTIME), COUNT(OID) FROM ORDER_LIST WHERE EXTRACT(MONTH FROM ORDERTIME)=:mon GROUP BY EXTRACT(MONTH FROM ORDERTIME)')
+                revenue.append(j[0])
+    """                   
+        cursor.prepare('SELECT TO_DATE(TO_DATE(PERFORMANCE_DATE,''YYYY/MM/DD''),''MM''), SUM(VIDEO_LIKES_ADDED) FROM DAILY_PERFORMANCE WHERE TO_DATE(TO_DATE(PERFORMANCE_DATE,''YYYY/MM/DD''),''MM'')=:mon GROUP BY TO_DATE(TO_DATE(PERFORMANCE_DATE,''YYYY/MM/DD''),''MM'')')
         cursor.execute(None, {"mon": i})
         
         row = cursor.fetchall()
@@ -344,7 +317,6 @@ def dashboard():
         else:
             for k in row:
                 dataa.append(k[1])
-        
     cursor.prepare('SELECT SUM(TOTAL), CATEGORY FROM(SELECT * FROM PRODUCT,RECORD WHERE PRODUCT.PID = RECORD.PID) GROUP BY CATEGORY')
     cursor.execute(None)
     row = cursor.fetchall()
@@ -370,9 +342,14 @@ def dashboard():
         nameList.append(j[3])
     for k in row:
         countList.append(k[1])
-    
-    counter = counter - 1
-        
+    """
+    #counter = counter - 1
+    counter = 12
+    print(revenue)    
+    datab = []
+    datac = []
+    nameList = []
+    countList = []
     return render_template('dashboard.html', counter = counter, revenue = revenue, dataa = dataa, datab = datab, datac = datac, nameList = nameList, countList = countList)
 
 @app.route('/logout')  
@@ -383,5 +360,11 @@ def logout():
 
 if __name__ == '__main__':
     app.debug = True #easy to debug
+    #handler = logging.FileHandler('c://flask.log', encoding='UTF-8')
+    #handler.setLevel(logging.DEBUG) # 設定日誌記錄最低級別為DEBUG，低於DEBUG級別的日誌記錄會被忽略，不設定setLevel()則預設為NOTSET級別。
+    #logging_format = logging.Formatter(
+    #    '%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)s - %(message)s')
+    #handler.setFormatter(logging_format)
+    #app.logger.addHandler(handler)
     app.secret_key = "Your Key"
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5001)

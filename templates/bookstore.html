@@ -8,7 +8,6 @@
 {% block content%}
 <div class="btn_div">
   <h1 class="book_title left">Youtube Analysis</h1>
-  <a href="{{ url_for('cart') }}" title="購物車"><img class="cart" src="{{ url_for('static', filename='./image/shopping_cart.png') }}"></a>
   <a href="{{ url_for('logout') }}"  title="登出"><img class="logout" src="{{ url_for('static', filename='./image/logout.png') }}"></a>
 </div>
 <div class="btn_div">
@@ -28,21 +27,17 @@
 {% endwith %}
 
 <div class="book_table">
-  <form method="post" action={{ url_for('cart') }}>
+  <form method="post" action="" >
     <table cellpadding="10" border='3'>
       <tr>
         <th>商品編號</th>
         <th>商品名稱</th>
-        <th></th>
-        <th></th>
       </tr>
-      {% for book in book_data %}
+      {% for video in video_data %}
       <tr>
-        <td> {{ book.商品編號 }}</td>
-        <td> {{ book.商品名稱 }}</td>
-        <td><a href="{{ url_for('bookstore', pid=book.商品編號) }}"><button type="button">更多資訊</button></a></td>
-        <td><button type="submit" value="{{book.商品編號}}" name="pid" >加到購物車</button></td>
-        
+        <td> {{ video.影片編號 }}</td>
+        <td> {{ video.影片標題 }}</td>
+             
         <!-- 傳遞商品編號 -->
       </tr>
       {% endfor %}

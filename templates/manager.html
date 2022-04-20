@@ -38,7 +38,7 @@
 {% endif %}
 {% endwith %}
 
-<div class="video_table">
+<div class="book_table">
   <form  method='post' action={{ url_for('manager') }} >
     <table cellpadding="10" border='3'>
       <tr>
@@ -58,14 +58,14 @@
           </button>
         </td>
         <td>
-          <button type="submit" value="{{video.影片編號}}" name="delete" onclick="return (confirm('你確定要刪除 \'{{ video.影片標題 }}\' 嗎？'))">
+          <button type="submit" value="{{video.影片編號}}" name="delete" onclick="return (confirm('你確定要刪除 {{ video.影片標題 }} 嗎？'))">
             刪除
           </button>
         </td>
       </tr>
       {% endfor %}
     </table>
-      <div class="video_table">
+      <div class="book_table">
         <a href={{ url_for('add')}}><button value="new" name="new" type="button"> 上架新影片</button></a>
       </div>
     </form>
@@ -73,7 +73,7 @@
 </div>
 <script language="javascript">
   function have_product(){
-    alert('有使用者有使用到這筆資料，所以不能刪除');
+    alert('此影片已有統計資料，無法刪除');
   }
 </script>
 {% endblock content%}
