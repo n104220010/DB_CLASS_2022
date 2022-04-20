@@ -13,7 +13,7 @@ from sqlalchemy import null
 import cx_Oracle
 
 ## Oracle 連線
-cx_Oracle.init_oracle_client(lib_dir="C:\\Users\\sharo\\Documents\\GitHub\\DB_CLASS_2022\\instantclient_21_3") # init Oracle instant client 位置
+#cx_Oracle.init_oracle_client(lib_dir="C:\\Users\\sharo\\Documents\\GitHub\\_DB_CLASS_2022\\instantclient_21_3") # init Oracle instant client 位置
 connection = cx_Oracle.connect('Group6', 'group066', cx_Oracle.makedsn('140.117.69.58', 1521, 'orcl')) # 連線資訊
 cursor = connection.cursor()
 
